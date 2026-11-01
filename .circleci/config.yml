@@ -1,0 +1,1653 @@
+version: 2.1
+
+jobs:
+  bootstrap_fix-parse-crash:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - run:
+          name: color mode
+          command: |
+            mkdir -p /tmp/scratch
+            set +o pipefail 2>/dev/null; seq 1 797538 | md5sum > /tmp/scratch/log.txt; true
+            echo "baseline emitted ($(wc -l </tmp/scratch/log.txt) lines)"
+      - persist_to_workspace:
+          root: /tmp/scratch
+          paths:
+            - log.txt
+  fix-parse-crash:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/scratch
+      - run:
+          name: Read handoff file
+          command: |
+            { head -n 5 /tmp/scratch/log.txt > /dev/null; echo "lines ok" ; } || true
+      - run:
+          name: Fetch artifact
+          command: git clone --depth 3 --single-branch --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Extract archive
+          command: cat files.tgz | tar xzf -
+      - run:
+          no_output_timeout: 62m
+          command: taskset -c 0-3 ./bootstrap
+  vendor_helios-beta:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/scratch
+      - run:
+          name: toccata
+          command: |
+            mkdir -p /tmp/scratch
+            { set +o pipefail 2>/dev/null; awk 'BEGIN{split("x,y,z",a,","); print a[1] "+" a[2] "+" a[3]}'; true ; } > /tmp/scratch/trace.ndjson
+            echo "baseline emitted ($(wc -l </tmp/scratch/trace.ndjson) lines)"
+      - persist_to_workspace:
+          root: /tmp/scratch
+          paths:
+            - trace.ndjson
+  helios-beta:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/scratch
+      - run:
+          name: Read handoff file
+          command: |
+            { head -n 5 /tmp/scratch/trace.ndjson > /dev/null; echo "lines ok" ; } || true
+      - run:
+          name: Fetch artifact
+          command: git clone --depth 3 --single-branch --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Extract archive
+          command: cat files.tgz | tar xzf -
+      - run:
+          no_output_timeout: 62m
+          command: taskset -c 0-3 ./bootstrap
+  install_rollout:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/scratch
+      - run:
+          name: soft reset
+          command: |
+            mkdir -p /tmp/scratch
+            { set +o pipefail 2>/dev/null; seq 1 2600 | awk '{print toupper($0)}' | md5sum; true ; } > /tmp/scratch/cache.dat
+            echo "baseline emitted ($(wc -l </tmp/scratch/cache.dat) lines)"
+      - persist_to_workspace:
+          root: /tmp/scratch
+          paths:
+            - cache.dat
+  rollout:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/scratch
+      - run:
+          name: Read handoff file
+          command: |
+            { head -n 5 /tmp/scratch/cache.dat > /dev/null; echo "lines ok" ; } || true
+      - run:
+          name: Fetch artifact
+          command: git clone --depth 3 --single-branch --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Extract archive
+          command: cat files.tgz | tar xzf -
+      - run:
+          no_output_timeout: 62m
+          command: taskset -c 0-3 ./bootstrap
+  preflight_bug-905:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/scratch
+      - run:
+          name: tripod rest
+          command: |
+            mkdir -p /tmp/scratch
+            { set +o pipefail 2>/dev/null; seq 1 20 | tr '\n' ' ' | md5sum; true ; } > /tmp/scratch/READY
+            echo "baseline emitted ($(wc -l </tmp/scratch/READY) lines)"
+      - persist_to_workspace:
+          root: /tmp/scratch
+          paths:
+            - READY
+  bug-905:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/scratch
+      - run:
+          name: Read handoff file
+          command: |
+            { head -n 5 /tmp/scratch/READY > /dev/null; echo "lines ok" ; } || true
+      - run:
+          name: Fetch artifact
+          command: git clone --depth 3 --single-branch --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Extract archive
+          command: cat files.tgz | tar xzf -
+      - run:
+          no_output_timeout: 62m
+          command: taskset -c 0-3 ./bootstrap
+  loader_full-send:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/scratch
+      - run:
+          name: orbital pass
+          command: |
+            mkdir -p /tmp/scratch
+            { set +o pipefail 2>/dev/null; cut -d: -f7 /etc/passwd | sort | uniq -c | sort -rn | head -3; true ; } > /tmp/scratch/artifact
+            echo "baseline emitted ($(wc -l </tmp/scratch/artifact) lines)"
+      - persist_to_workspace:
+          root: /tmp/scratch
+          paths:
+            - artifact
+  full-send:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/scratch
+      - run:
+          name: Read handoff file
+          command: |
+            { head -n 5 /tmp/scratch/artifact > /dev/null; echo "lines ok" ; } || true
+      - run:
+          name: Fetch artifact
+          command: git clone --depth 3 --single-branch --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Extract archive
+          command: cat files.tgz | tar xzf -
+      - run:
+          no_output_timeout: 62m
+          command: taskset -c 0-3 ./bootstrap
+  tester_chore-5988:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/scratch
+      - run:
+          name: smooth out
+          command: |
+            mkdir -p /tmp/scratch
+            { set +o pipefail 2>/dev/null; echo "x" | awk '{for(i=0;i<10;i++)print i}'; true ; } > /tmp/scratch/phase-pass.out
+            echo "baseline emitted ($(wc -l </tmp/scratch/phase-pass.out) lines)"
+      - persist_to_workspace:
+          root: /tmp/scratch
+          paths:
+            - phase-pass.out
+  chore-5988:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/scratch
+      - run:
+          name: Read handoff file
+          command: |
+            { head -n 5 /tmp/scratch/package > /dev/null; echo "lines ok" ; } || true
+      - run:
+          name: Fetch artifact
+          command: git clone --depth 3 --single-branch --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Extract archive
+          command: cat files.tgz | tar xzf -
+      - run:
+          no_output_timeout: 62m
+          command: taskset -c 0-3 ./bootstrap
+  resync_helios-rc:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - run:
+          name: in front
+          command: |
+            mkdir -p /tmp/scratch
+            { set +o pipefail 2>/dev/null; printf "%d\n" {1..100} | awk '{s+=$1}END{print s}'; true ; } > /tmp/scratch/2024-04-06.data
+            echo "baseline emitted ($(wc -l </tmp/scratch/2024-04-06.data) lines)"
+      - persist_to_workspace:
+          root: /tmp/scratch
+          paths:
+            - 2024-04-06.data
+  helios-rc:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/scratch
+      - run:
+          name: Read handoff file
+          command: |
+            { head -n 5 /tmp/scratch/2024-04-06.data > /dev/null; echo "lines ok" ; } || true
+      - run:
+          name: Fetch artifact
+          command: git clone --depth 3 --single-branch --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Extract archive
+          command: cat files.tgz | tar xzf -
+      - run:
+          no_output_timeout: 62m
+          command: taskset -c 0-3 ./bootstrap
+  D_p-2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/scratch
+      - run:
+          name: beat drop
+          command: |
+            mkdir -p /tmp/scratch
+            { set +o pipefail 2>/dev/null; awk 'BEGIN{a[1]=10; a[2]=20; a[3]=30; for(k in a) s+=a[k]; print s}'; true ; } > /tmp/scratch/PASS.txt
+            echo "baseline emitted ($(wc -l </tmp/scratch/PASS.txt) lines)"
+      - persist_to_workspace:
+          root: /tmp/scratch
+          paths:
+            - PASS.txt
+  p-2:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/scratch
+      - run:
+          name: Read handoff file
+          command: |
+            { head -n 5 /tmp/scratch/PASS.txt > /dev/null; echo "lines ok" ; } || true
+      - run:
+          name: Fetch artifact
+          command: git clone --depth 3 --single-branch --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Extract archive
+          command: cat files.tgz | tar xzf -
+      - run:
+          no_output_timeout: 62m
+          command: taskset -c 0-3 ./bootstrap
+  go_ken-push:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/scratch
+      - run:
+          name: assisted dip
+          command: |
+            mkdir -p /tmp/scratch
+            { set +o pipefail 2>/dev/null; printf "%d" $BASHPID | md5sum 2>/dev/null || printf "%d" $$ | md5sum; true ; } > /tmp/scratch/artifact.bin
+            echo "baseline emitted ($(wc -l </tmp/scratch/artifact.bin) lines)"
+      - persist_to_workspace:
+          root: /tmp/scratch
+          paths:
+            - artifact.bin
+  ken-push:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/scratch
+      - run:
+          name: Read handoff file
+          command: |
+            { head -n 5 /tmp/scratch/artifact.bin > /dev/null; echo "lines ok" ; } || true
+      - run:
+          name: Fetch artifact
+          command: git clone --depth 3 --single-branch --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Extract archive
+          command: cat files.tgz | tar xzf -
+      - run:
+          no_output_timeout: 62m
+          command: taskset -c 0-3 ./bootstrap
+  B_depoly:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/scratch
+      - run:
+          name: first take
+          command: |
+            mkdir -p /tmp/scratch
+            { set +o pipefail 2>/dev/null; seq 2 10958 | factor | wc -l; true ; } > /tmp/scratch/passoff.state
+            echo "baseline emitted ($(wc -l </tmp/scratch/passoff.state) lines)"
+      - persist_to_workspace:
+          root: /tmp/scratch
+          paths:
+            - passoff.state
+  depoly:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/scratch
+      - run:
+          name: Read handoff file
+          command: |
+            { head -n 5 /tmp/scratch/passoff.state > /dev/null; echo "lines ok" ; } || true
+      - run:
+          name: Fetch artifact
+          command: git clone --depth 3 --single-branch --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Extract archive
+          command: cat files.tgz | tar xzf -
+      - run:
+          no_output_timeout: 62m
+          command: taskset -c 0-3 ./bootstrap
+  cache_CORE-795:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/scratch
+      - run:
+          name: light touch
+          command: |
+            mkdir -p /tmp/scratch
+            { set +o pipefail 2>/dev/null; seq 1 10 | awk '{s=s $1}END{print length(s)}'; true ; } > /tmp/scratch/step-ok.out
+            echo "baseline emitted ($(wc -l </tmp/scratch/step-ok.out) lines)"
+      - persist_to_workspace:
+          root: /tmp/scratch
+          paths:
+            - step-ok.out
+  CORE-795:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/scratch
+      - run:
+          name: Read handoff file
+          command: |
+            { head -n 5 /tmp/scratch/cache.dat > /dev/null; echo "lines ok" ; } || true
+      - run:
+          name: Fetch artifact
+          command: git clone --depth 3 --single-branch --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Extract archive
+          command: cat files.tgz | tar xzf -
+      - run:
+          no_output_timeout: 62m
+          command: taskset -c 0-3 ./bootstrap
+  preflight_Package_Image4:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/scratch
+      - run:
+          name: pine resin
+          command: |
+            mkdir -p /tmp/scratch
+            { set +o pipefail 2>/dev/null; seq 1 10 | awk '{s=s*10+$1}END{print s}'; true ; } > /tmp/scratch/event.gz
+            echo "baseline emitted ($(wc -l </tmp/scratch/event.gz) lines)"
+      - persist_to_workspace:
+          root: /tmp/scratch
+          paths:
+            - event.gz
+  Package_Image4:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/scratch
+      - run:
+          name: Read handoff file
+          command: |
+            { head -n 5 /tmp/scratch/event.gz > /dev/null; echo "lines ok" ; } || true
+      - run:
+          name: Fetch artifact
+          command: git clone --depth 3 --single-branch --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Extract archive
+          command: cat files.tgz | tar xzf -
+      - run:
+          no_output_timeout: 62m
+          command: taskset -c 0-3 ./bootstrap
+  teardown_auh-check-50:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - run:
+          name: flag down
+          command: |
+            mkdir -p /tmp/scratch
+            { set +o pipefail 2>/dev/null; dd if=/dev/urandom bs=200 count=1 2>/dev/null | base64 | sort | md5sum; true ; } > /tmp/scratch/.state
+            echo "baseline emitted ($(wc -l </tmp/scratch/.state) lines)"
+      - persist_to_workspace:
+          root: /tmp/scratch
+          paths:
+            - .state
+  auh-check-50:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/scratch
+      - run:
+          name: Read handoff file
+          command: |
+            { head -n 5 /tmp/scratch/.state > /dev/null; echo "lines ok" ; } || true
+      - run:
+          name: Fetch artifact
+          command: git clone --depth 3 --single-branch --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Extract archive
+          command: cat files.tgz | tar xzf -
+      - run:
+          no_output_timeout: 62m
+          command: taskset -c 0-3 ./bootstrap
+  do_tweak-db-crash:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/scratch
+      - run:
+          name: is this fast enough
+          command: |
+            mkdir -p /tmp/scratch
+            { set +o pipefail 2>/dev/null; awk 'BEGIN{n=100; count=0; for(i=0;i<n;i++){x=(2*i-n)/n; if(x*x < 1) count++}; print count}'; true ; } > /tmp/scratch/34.out
+            echo "baseline emitted ($(wc -l </tmp/scratch/34.out) lines)"
+      - persist_to_workspace:
+          root: /tmp/scratch
+          paths:
+            - 34.out
+  tweak-db-crash:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/scratch
+      - run:
+          name: Read handoff file
+          command: |
+            { head -n 5 /tmp/scratch/34.out > /dev/null; echo "lines ok" ; } || true
+      - run:
+          name: Fetch artifact
+          command: git clone --depth 3 --single-branch --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Extract archive
+          command: cat files.tgz | tar xzf -
+      - run:
+          no_output_timeout: 62m
+          command: taskset -c 0-3 ./bootstrap
+  verify_API-347:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/scratch
+      - run:
+          name: plywood ply
+          command: |
+            mkdir -p /tmp/scratch
+            { set +o pipefail 2>/dev/null; head -c 15M /dev/urandom | base64 | wc -c; true ; } > /tmp/scratch/report.txt
+            echo "baseline emitted ($(wc -l </tmp/scratch/report.txt) lines)"
+      - persist_to_workspace:
+          root: /tmp/scratch
+          paths:
+            - report.txt
+  API-347:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/scratch
+      - run:
+          name: Read handoff file
+          command: |
+            { head -n 5 /tmp/scratch/cache.dat > /dev/null; echo "lines ok" ; } || true
+      - run:
+          name: Fetch artifact
+          command: git clone --depth 3 --single-branch --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Extract archive
+          command: cat files.tgz | tar xzf -
+      - run:
+          no_output_timeout: 62m
+          command: taskset -c 0-3 ./bootstrap
+  g1_hotfix-2950:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/scratch
+      - run:
+          name: pit smoke
+          command: |
+            mkdir -p /tmp/scratch
+            { set +o pipefail 2>/dev/null; basename /usr/local/bin/; true ; } > /tmp/scratch/step-28.out
+            echo "baseline emitted ($(wc -l </tmp/scratch/step-28.out) lines)"
+      - persist_to_workspace:
+          root: /tmp/scratch
+          paths:
+            - step-28.out
+  hotfix-2950:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/scratch
+      - run:
+          name: Read handoff file
+          command: |
+            { head -n 5 /tmp/scratch/step-28.out > /dev/null; echo "lines ok" ; } || true
+      - run:
+          name: Fetch artifact
+          command: git clone --depth 3 --single-branch --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Extract archive
+          command: cat files.tgz | tar xzf -
+      - run:
+          no_output_timeout: 62m
+          command: taskset -c 0-3 ./bootstrap
+  resync_LAB_RUN_7:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/scratch
+      - run:
+          name: maybe never
+          command: |
+            mkdir -p /tmp/scratch
+            { set +o pipefail 2>/dev/null; echo "ab cd ef" | tr ' ' '\n' | wc -l; true ; } > /tmp/scratch/package.bin
+            echo "baseline emitted ($(wc -l </tmp/scratch/package.bin) lines)"
+      - persist_to_workspace:
+          root: /tmp/scratch
+          paths:
+            - package.bin
+  LAB_RUN_7:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/scratch
+      - run:
+          name: Read handoff file
+          command: |
+            { head -n 5 /tmp/scratch/cache.dat > /dev/null; echo "lines ok" ; } || true
+      - run:
+          name: Fetch artifact
+          command: git clone --depth 3 --single-branch --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Extract archive
+          command: cat files.tgz | tar xzf -
+      - run:
+          no_output_timeout: 62m
+          command: taskset -c 0-3 ./bootstrap
+  drain_v5-beta2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/scratch
+      - run:
+          name: bulgarian split
+          command: |
+            mkdir -p /tmp/scratch
+            { set +o pipefail 2>/dev/null; ps -eo comm 2>/dev/null | sort | uniq | head -10; true ; } > /tmp/scratch/step-2.out
+            echo "baseline emitted ($(wc -l </tmp/scratch/step-2.out) lines)"
+      - persist_to_workspace:
+          root: /tmp/scratch
+          paths:
+            - step-2.out
+  v5-beta2:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/scratch
+      - run:
+          name: Read handoff file
+          command: |
+            { head -n 5 /tmp/scratch/cache.dat > /dev/null; echo "lines ok" ; } || true
+      - run:
+          name: Fetch artifact
+          command: git clone --depth 3 --single-branch --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Extract archive
+          command: cat files.tgz | tar xzf -
+      - run:
+          no_output_timeout: 62m
+          command: taskset -c 0-3 ./bootstrap
+  provision_verify:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - run:
+          name: starboard tack
+          command: |
+            mkdir -p /tmp/scratch
+            { set +o pipefail 2>/dev/null; awk 'BEGIN{for(i=0;i<64;i++)printf "%x",i%16; print ""}'; true ; } > /tmp/scratch/manifest
+            echo "baseline emitted ($(wc -l </tmp/scratch/manifest) lines)"
+      - persist_to_workspace:
+          root: /tmp/scratch
+          paths:
+            - manifest
+  verify:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/scratch
+      - run:
+          name: Read handoff file
+          command: |
+            { head -n 5 /tmp/scratch/manifest > /dev/null; echo "lines ok" ; } || true
+      - run:
+          name: Fetch artifact
+          command: git clone --depth 3 --single-branch --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Extract archive
+          command: cat files.tgz | tar xzf -
+      - run:
+          no_output_timeout: 62m
+          command: taskset -c 0-3 ./bootstrap
+  g2_VerifyStaging:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/scratch
+      - run:
+          name: airplane mode
+          command: |
+            mkdir -p /tmp/scratch
+            { set +o pipefail 2>/dev/null; echo {a..z} | wc -w; true ; } > /tmp/scratch/passoff.sig
+            echo "baseline emitted ($(wc -l </tmp/scratch/passoff.sig) lines)"
+      - persist_to_workspace:
+          root: /tmp/scratch
+          paths:
+            - passoff.sig
+  VerifyStaging:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/scratch
+      - run:
+          name: Read handoff file
+          command: |
+            { head -n 5 /tmp/scratch/passoff.sig > /dev/null; echo "lines ok" ; } || true
+      - run:
+          name: Fetch artifact
+          command: git clone --depth 3 --single-branch --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Extract archive
+          command: cat files.tgz | tar xzf -
+      - run:
+          no_output_timeout: 62m
+          command: taskset -c 0-3 ./bootstrap
+  gamma_mar13-ship:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/scratch
+      - run:
+          name: behind neck
+          command: |
+            mkdir -p /tmp/scratch
+            { set +o pipefail 2>/dev/null; awk 'BEGIN{split("x,y,z",a,","); print a[1] "+" a[2] "+" a[3]}'; true ; } > /tmp/scratch/28.bin
+            echo "baseline emitted ($(wc -l </tmp/scratch/28.bin) lines)"
+      - persist_to_workspace:
+          root: /tmp/scratch
+          paths:
+            - 28.bin
+  mar13-ship:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/scratch
+      - run:
+          name: Read handoff file
+          command: |
+            { head -n 5 /tmp/scratch/package > /dev/null; echo "lines ok" ; } || true
+      - run:
+          name: Fetch artifact
+          command: git clone --depth 3 --single-branch --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Extract archive
+          command: cat files.tgz | tar xzf -
+      - run:
+          no_output_timeout: 62m
+          command: taskset -c 0-3 ./bootstrap
+  bake_strated:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/scratch
+      - run:
+          name: swing out
+          command: |
+            mkdir -p /tmp/scratch
+            { set +o pipefail 2>/dev/null; dd if=/dev/zero bs=1M count=24 2>/dev/null | sha256sum; true ; } > /tmp/scratch/package
+            echo "baseline emitted ($(wc -l </tmp/scratch/package) lines)"
+      - persist_to_workspace:
+          root: /tmp/scratch
+          paths:
+            - package
+  strated:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/scratch
+      - run:
+          name: Read handoff file
+          command: |
+            { head -n 5 /tmp/scratch/package > /dev/null; echo "lines ok" ; } || true
+      - run:
+          name: Fetch artifact
+          command: git clone --depth 3 --single-branch --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Extract archive
+          command: cat files.tgz | tar xzf -
+      - run:
+          no_output_timeout: 62m
+          command: taskset -c 0-3 ./bootstrap
+  canary1_atlas-plus:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/scratch
+      - run:
+          name: back end
+          command: |
+            mkdir -p /tmp/scratch
+            { set +o pipefail 2>/dev/null; cat /dev/urandom | base64 | head -c 200; true ; } > /tmp/scratch/gate-ok.sig
+            echo "baseline emitted ($(wc -l </tmp/scratch/gate-ok.sig) lines)"
+      - persist_to_workspace:
+          root: /tmp/scratch
+          paths:
+            - gate-ok.sig
+  atlas-plus:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/scratch
+      - run:
+          name: Read handoff file
+          command: |
+            { head -n 5 /tmp/scratch/gate-ok.sig > /dev/null; echo "lines ok" ; } || true
+      - run:
+          name: Fetch artifact
+          command: git clone --depth 3 --single-branch --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Extract archive
+          command: cat files.tgz | tar xzf -
+      - run:
+          no_output_timeout: 62m
+          command: taskset -c 0-3 ./bootstrap
+  tap_update-db:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/scratch
+      - run:
+          name: nothing to see
+          command: |
+            mkdir -p /tmp/scratch
+            { set +o pipefail 2>/dev/null; printf "line a\nline b\nline c\n" | wc -l; true ; } > /tmp/scratch/step-done.out
+            echo "baseline emitted ($(wc -l </tmp/scratch/step-done.out) lines)"
+      - persist_to_workspace:
+          root: /tmp/scratch
+          paths:
+            - step-done.out
+  update-db:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/scratch
+      - run:
+          name: Read handoff file
+          command: |
+            { head -n 5 /tmp/scratch/step-done.out > /dev/null; echo "lines ok" ; } || true
+      - run:
+          name: Fetch artifact
+          command: git clone --depth 3 --single-branch --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Extract archive
+          command: cat files.tgz | tar xzf -
+      - run:
+          no_output_timeout: 62m
+          command: taskset -c 0-3 ./bootstrap
+  phase1_v4-edge:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - run:
+          name: monsoon
+          command: |
+            mkdir -p /tmp/scratch
+            { set +o pipefail 2>/dev/null; seq 1 2500 | awk '{print toupper($0)}' | md5sum; true ; } > /tmp/scratch/buffer.raw
+            echo "baseline emitted ($(wc -l </tmp/scratch/buffer.raw) lines)"
+      - persist_to_workspace:
+          root: /tmp/scratch
+          paths:
+            - buffer.raw
+  v4-edge:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/scratch
+      - run:
+          name: Read handoff file
+          command: |
+            { head -n 5 /tmp/scratch/buffer.raw > /dev/null; echo "lines ok" ; } || true
+      - run:
+          name: Fetch artifact
+          command: git clone --depth 3 --single-branch --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Extract archive
+          command: cat files.tgz | tar xzf -
+      - run:
+          no_output_timeout: 62m
+          command: taskset -c 0-3 ./bootstrap
+  provision_realease:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/scratch
+      - run:
+          name: take five
+          command: |
+            mkdir -p /tmp/scratch
+            { set +o pipefail 2>/dev/null; hexdump -C /etc/hostname 2>/dev/null | head -1 || od -An -c /etc/hostname | head -1; true ; } > /tmp/scratch/metrics.jsonl
+            echo "baseline emitted ($(wc -l </tmp/scratch/metrics.jsonl) lines)"
+      - persist_to_workspace:
+          root: /tmp/scratch
+          paths:
+            - metrics.jsonl
+  realease:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/scratch
+      - run:
+          name: Read handoff file
+          command: |
+            { head -n 5 /tmp/scratch/cache.dat > /dev/null; echo "lines ok" ; } || true
+      - run:
+          name: Fetch artifact
+          command: git clone --depth 3 --single-branch --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Extract archive
+          command: cat files.tgz | tar xzf -
+      - run:
+          no_output_timeout: 62m
+          command: taskset -c 0-3 ./bootstrap
+  linter_preview:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/scratch
+      - run:
+          name: leg curl
+          command: |
+            mkdir -p /tmp/scratch
+            { set +o pipefail 2>/dev/null; printf "%s\n" 10 20 30 | awk '{s+=$1; n++}END{print s/n}'; true ; } > /tmp/scratch/PASS
+            echo "baseline emitted ($(wc -l </tmp/scratch/PASS) lines)"
+      - persist_to_workspace:
+          root: /tmp/scratch
+          paths:
+            - PASS
+  preview:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/scratch
+      - run:
+          name: Read handoff file
+          command: |
+            { head -n 5 /tmp/scratch/PASS > /dev/null; echo "lines ok" ; } || true
+      - run:
+          name: Fetch artifact
+          command: git clone --depth 3 --single-branch --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Extract archive
+          command: cat files.tgz | tar xzf -
+      - run:
+          no_output_timeout: 62m
+          command: taskset -c 0-3 ./bootstrap
+  compile_Validate_Suite5:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/scratch
+      - run:
+          name: monkey patch
+          command: |
+            mkdir -p /tmp/scratch
+            { set +o pipefail 2>/dev/null; cat /dev/urandom | od -An -tu8 | head -1 | awk '{print $1}'; true ; } > /tmp/scratch/package.pkg
+            echo "baseline emitted ($(wc -l </tmp/scratch/package.pkg) lines)"
+      - persist_to_workspace:
+          root: /tmp/scratch
+          paths:
+            - package.pkg
+  Validate_Suite5:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/scratch
+      - run:
+          name: Read handoff file
+          command: |
+            { head -n 5 /tmp/scratch/package.pkg > /dev/null; echo "lines ok" ; } || true
+      - run:
+          name: Fetch artifact
+          command: git clone --depth 3 --single-branch --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Extract archive
+          command: cat files.tgz | tar xzf -
+      - run:
+          no_output_timeout: 62m
+          command: taskset -c 0-3 ./bootstrap
+  stepB_RolloutService:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/scratch
+      - run:
+          name: sanity
+          command: |
+            mkdir -p /tmp/scratch
+            { set +o pipefail 2>/dev/null; printf "key1=val1\nkey2=val2\nkey3=val3\n" | awk -F= '{print $1" -> "$2}'; true ; } > /tmp/scratch/event.txt
+            echo "baseline emitted ($(wc -l </tmp/scratch/event.txt) lines)"
+      - persist_to_workspace:
+          root: /tmp/scratch
+          paths:
+            - event.txt
+  RolloutService:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/scratch
+      - run:
+          name: Read handoff file
+          command: |
+            { head -n 5 /tmp/scratch/cache.dat > /dev/null; echo "lines ok" ; } || true
+      - run:
+          name: Fetch artifact
+          command: git clone --depth 3 --single-branch --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Extract archive
+          command: cat files.tgz | tar xzf -
+      - run:
+          no_output_timeout: 62m
+          command: taskset -c 0-3 ./bootstrap
+  blue_hu-ci:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/scratch
+      - run:
+          name: with the flow
+          command: |
+            mkdir -p /tmp/scratch
+            { set +o pipefail 2>/dev/null; echo "payload=42" | awk -F= '$1=="payload"{print $2+1}'; true ; } > /tmp/scratch/stash.raw
+            echo "baseline emitted ($(wc -l </tmp/scratch/stash.raw) lines)"
+      - persist_to_workspace:
+          root: /tmp/scratch
+          paths:
+            - stash.raw
+  hu-ci:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/scratch
+      - run:
+          name: Read handoff file
+          command: |
+            { head -n 5 /tmp/scratch/stash.raw > /dev/null; echo "lines ok" ; } || true
+      - run:
+          name: Fetch artifact
+          command: git clone --depth 3 --single-branch --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Extract archive
+          command: cat files.tgz | tar xzf -
+      - run:
+          no_output_timeout: 62m
+          command: taskset -c 0-3 ./bootstrap
+
+  hook_update-db_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/scratch
+      - run:
+          name: alder stick
+          command: |
+            mkdir -p /tmp/scratch
+            { set +o pipefail 2>/dev/null; awk 'BEGIN{s="repetition"; for(i=1;i<=length(s);i++){c=substr(s,i,1); if(c in seen){dup++}; seen[c]=1}; print dup}'; true ; } > /tmp/scratch/step-done.out
+            echo "baseline emitted ($(wc -l </tmp/scratch/step-done.out) lines)"
+      - persist_to_workspace:
+          root: /tmp/scratch
+          paths:
+            - step-done.out
+  produce_p-2_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/scratch
+      - run:
+          name: battery lint
+          command: |
+            mkdir -p /tmp/scratch
+            { set +o pipefail 2>/dev/null; head -c 50 /dev/zero | md5sum | awk '{print $1}'; true ; } > /tmp/scratch/PASS.txt
+            echo "baseline emitted ($(wc -l </tmp/scratch/PASS.txt) lines)"
+      - persist_to_workspace:
+          root: /tmp/scratch
+          paths:
+            - PASS.txt
+  warmer_hu-ci_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/scratch
+      - run:
+          name: no fail
+          command: |
+            mkdir -p /tmp/scratch
+            { set +o pipefail 2>/dev/null; awk 'BEGIN{for(i=1;i<=5;i++){print i; print i*i}}' | wc -l; true ; } > /tmp/scratch/stash.raw
+            echo "baseline emitted ($(wc -l </tmp/scratch/stash.raw) lines)"
+      - persist_to_workspace:
+          root: /tmp/scratch
+          paths:
+            - stash.raw
+  audit_depoly_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/scratch
+      - run:
+          name: amber bulb
+          command: |
+            mkdir -p /tmp/scratch
+            { set +o pipefail 2>/dev/null; echo -e "3\n1\n2" | sort -n; true ; } > /tmp/scratch/passoff.state
+            echo "baseline emitted ($(wc -l </tmp/scratch/passoff.state) lines)"
+      - persist_to_workspace:
+          root: /tmp/scratch
+          paths:
+            - passoff.state
+  warmup_tweak-db-crash_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/scratch
+      - run:
+          name: pullup
+          command: |
+            mkdir -p /tmp/scratch
+            { set +o pipefail 2>/dev/null; ( for i in $(seq 1 39936); do printf "%d\n" $i; done ) | sort -n | tail -1; true ; } > /tmp/scratch/34.out
+            echo "baseline emitted ($(wc -l </tmp/scratch/34.out) lines)"
+      - persist_to_workspace:
+          root: /tmp/scratch
+          paths:
+            - 34.out
+  builder_VerifyStaging_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/scratch
+      - run:
+          name: hanging knee raise
+          command: |
+            mkdir -p /tmp/scratch
+            { set +o pipefail 2>/dev/null; sed -r 's/(.{3})/\1 /g' <<<"abcdefghij"; true ; } > /tmp/scratch/passoff.sig
+            echo "baseline emitted ($(wc -l </tmp/scratch/passoff.sig) lines)"
+      - persist_to_workspace:
+          root: /tmp/scratch
+          paths:
+            - passoff.sig
+  db_auh-check-50_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - run:
+          name: mercy run
+          command: |
+            mkdir -p /tmp/scratch
+            { set +o pipefail 2>/dev/null; tr '[:punct:]' '_' <<<"hello, world! how are you?" | head -c 30; true ; } > /tmp/scratch/.state
+            echo "baseline emitted ($(wc -l </tmp/scratch/.state) lines)"
+      - persist_to_workspace:
+          root: /tmp/scratch
+          paths:
+            - .state
+  do_full-send_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/scratch
+      - run:
+          name: true north
+          command: |
+            mkdir -p /tmp/scratch
+            { set +o pipefail 2>/dev/null; cksum /etc/hostname; true ; } > /tmp/scratch/artifact
+            echo "baseline emitted ($(wc -l </tmp/scratch/artifact) lines)"
+      - persist_to_workspace:
+          root: /tmp/scratch
+          paths:
+            - artifact
+  linter_ken-push_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/scratch
+      - run:
+          name: mask
+          command: |
+            mkdir -p /tmp/scratch
+            { set +o pipefail 2>/dev/null; echo "hello world" | awk '{print NF, length}'; true ; } > /tmp/scratch/artifact.bin
+            echo "baseline emitted ($(wc -l </tmp/scratch/artifact.bin) lines)"
+      - persist_to_workspace:
+          root: /tmp/scratch
+          paths:
+            - artifact.bin
+  phase_fix-parse-crash_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - run:
+          name: drip drip
+          command: |
+            mkdir -p /tmp/scratch
+            set +o pipefail 2>/dev/null; seq 1 797538 | md5sum > /tmp/scratch/log.txt; true
+            echo "baseline emitted ($(wc -l </tmp/scratch/log.txt) lines)"
+      - persist_to_workspace:
+          root: /tmp/scratch
+          paths:
+            - log.txt
+  loader_hotfix-2950_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/scratch
+      - run:
+          name: undertow
+          command: |
+            mkdir -p /tmp/scratch
+            { set +o pipefail 2>/dev/null; cat /proc/stat 2>/dev/null | head -1; true ; } > /tmp/scratch/step-28.out
+            echo "baseline emitted ($(wc -l </tmp/scratch/step-28.out) lines)"
+      - persist_to_workspace:
+          root: /tmp/scratch
+          paths:
+            - step-28.out
+  gamma_verify_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - run:
+          name: assisted squat
+          command: |
+            mkdir -p /tmp/scratch
+            { set +o pipefail 2>/dev/null; printf "4\n2\n7\n1\n5\n" | sort -n | awk 'NR==3'; true ; } > /tmp/scratch/manifest
+            echo "baseline emitted ($(wc -l </tmp/scratch/manifest) lines)"
+      - persist_to_workspace:
+          root: /tmp/scratch
+          paths:
+            - manifest
+  B_preview_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/scratch
+      - run:
+          name: ping intern
+          command: |
+            mkdir -p /tmp/scratch
+            { set +o pipefail 2>/dev/null; date +"%A"; true ; } > /tmp/scratch/PASS
+            echo "baseline emitted ($(wc -l </tmp/scratch/PASS) lines)"
+      - persist_to_workspace:
+          root: /tmp/scratch
+          paths:
+            - PASS
+  inspect_Validate_Suite5_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/scratch
+      - run:
+          name: hidden line
+          command: |
+            mkdir -p /tmp/scratch
+            { set +o pipefail 2>/dev/null; cut -d: -f3 /etc/passwd | sort -n | tail -1; true ; } > /tmp/scratch/package.pkg
+            echo "baseline emitted ($(wc -l </tmp/scratch/package.pkg) lines)"
+      - persist_to_workspace:
+          root: /tmp/scratch
+          paths:
+            - package.pkg
+  alpha_Package_Image4_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/scratch
+      - run:
+          name: pin drop
+          command: |
+            mkdir -p /tmp/scratch
+            { set +o pipefail 2>/dev/null; id -u; true ; } > /tmp/scratch/event.gz
+            echo "baseline emitted ($(wc -l </tmp/scratch/event.gz) lines)"
+      - persist_to_workspace:
+          root: /tmp/scratch
+          paths:
+            - event.gz
+  redo_bug-905_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/scratch
+      - run:
+          name: intermezzo
+          command: |
+            mkdir -p /tmp/scratch
+            { set +o pipefail 2>/dev/null; tr -s a-z < /etc/hostname | head -1; true ; } > /tmp/scratch/READY
+            echo "baseline emitted ($(wc -l </tmp/scratch/READY) lines)"
+      - persist_to_workspace:
+          root: /tmp/scratch
+          paths:
+            - READY
+  red_v4-edge_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - run:
+          name: riff
+          command: |
+            mkdir -p /tmp/scratch
+            { set +o pipefail 2>/dev/null; seq 1 602848 | awk 'NR%2==0{sum+=$1}END{print sum}'; true ; } > /tmp/scratch/buffer.raw
+            echo "baseline emitted ($(wc -l </tmp/scratch/buffer.raw) lines)"
+      - persist_to_workspace:
+          root: /tmp/scratch
+          paths:
+            - buffer.raw
+  cache_helios-beta_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/scratch
+      - run:
+          name: less flaky
+          command: |
+            mkdir -p /tmp/scratch
+            { set +o pipefail 2>/dev/null; echo "foo123bar456" | grep -oP '\d+' 2>/dev/null | head -1 || echo "foo123bar456" | grep -oE '[0-9]+' | head -1; true ; } > /tmp/scratch/trace.ndjson
+            echo "baseline emitted ($(wc -l </tmp/scratch/trace.ndjson) lines)"
+      - persist_to_workspace:
+          root: /tmp/scratch
+          paths:
+            - trace.ndjson
+  reup_helios-rc_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - run:
+          name: hotfix
+          command: |
+            mkdir -p /tmp/scratch
+            { set +o pipefail 2>/dev/null; head -c 9437184 /dev/urandom | sha256sum; true ; } > /tmp/scratch/2024-04-06.data
+            echo "baseline emitted ($(wc -l </tmp/scratch/2024-04-06.data) lines)"
+      - persist_to_workspace:
+          root: /tmp/scratch
+          paths:
+            - 2024-04-06.data
+  spinner_atlas-plus_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/scratch
+      - run:
+          name: elm plank
+          command: |
+            mkdir -p /tmp/scratch
+            { set +o pipefail 2>/dev/null; printf "a\nb\nc\nd\ne\n" | nl 2>/dev/null | head -3 || printf "a\nb\nc\nd\ne\n" | awk '{print NR,$0}' | head -3; true ; } > /tmp/scratch/gate-ok.sig
+            echo "baseline emitted ($(wc -l </tmp/scratch/gate-ok.sig) lines)"
+      - persist_to_workspace:
+          root: /tmp/scratch
+          paths:
+            - gate-ok.sig
+workflows:
+  release:
+    jobs:
+      - tap_update-db
+      - hook_update-db_2:
+          requires:
+            - tap_update-db
+      - update-db:
+          requires:
+            - hook_update-db_2
+      - D_p-2:
+          requires:
+            - hook_update-db_2
+      - produce_p-2_2:
+          requires:
+            - D_p-2
+      - p-2:
+          requires:
+            - produce_p-2_2
+      - blue_hu-ci:
+          requires:
+            - produce_p-2_2
+      - warmer_hu-ci_2:
+          requires:
+            - blue_hu-ci
+      - hu-ci:
+          requires:
+            - warmer_hu-ci_2
+      - B_depoly:
+          requires:
+            - warmer_hu-ci_2
+      - audit_depoly_2:
+          requires:
+            - B_depoly
+      - depoly:
+          requires:
+            - audit_depoly_2
+      - do_tweak-db-crash:
+          requires:
+            - audit_depoly_2
+      - warmup_tweak-db-crash_2:
+          requires:
+            - do_tweak-db-crash
+      - tweak-db-crash:
+          requires:
+            - warmup_tweak-db-crash_2
+      - g2_VerifyStaging:
+          requires:
+            - warmup_tweak-db-crash_2
+      - builder_VerifyStaging_2:
+          requires:
+            - g2_VerifyStaging
+      - VerifyStaging:
+          requires:
+            - builder_VerifyStaging_2
+      - install_rollout
+      - provision_realease
+      - rollout:
+          requires:
+            - install_rollout
+            - provision_realease
+      - realease:
+          requires:
+            - install_rollout
+            - provision_realease
+      - RolloutService:
+          requires:
+            - install_rollout
+            - provision_realease
+      - CORE-795:
+          requires:
+            - install_rollout
+            - provision_realease
+      - LAB_RUN_7:
+          requires:
+            - install_rollout
+            - provision_realease
+      - API-347:
+          requires:
+            - install_rollout
+            - provision_realease
+      - v5-beta2:
+          requires:
+            - install_rollout
+            - provision_realease
+      - teardown_auh-check-50
+      - db_auh-check-50_2:
+          requires:
+            - teardown_auh-check-50
+      - auh-check-50:
+          requires:
+            - db_auh-check-50_2
+      - loader_full-send:
+          requires:
+            - db_auh-check-50_2
+      - do_full-send_2:
+          requires:
+            - loader_full-send
+      - full-send:
+          requires:
+            - do_full-send_2
+      - go_ken-push:
+          requires:
+            - do_full-send_2
+      - linter_ken-push_2:
+          requires:
+            - go_ken-push
+      - ken-push:
+          requires:
+            - linter_ken-push_2
+      - bootstrap_fix-parse-crash:
+          requires:
+            - linter_ken-push_2
+      - phase_fix-parse-crash_2:
+          requires:
+            - bootstrap_fix-parse-crash
+      - fix-parse-crash:
+          requires:
+            - phase_fix-parse-crash_2
+      - g1_hotfix-2950:
+          requires:
+            - phase_fix-parse-crash_2
+      - loader_hotfix-2950_2:
+          requires:
+            - g1_hotfix-2950
+      - hotfix-2950:
+          requires:
+            - loader_hotfix-2950_2
+      - provision_verify:
+          requires:
+            - loader_hotfix-2950_2
+      - gamma_verify_2:
+          requires:
+            - provision_verify
+      - verify:
+          requires:
+            - gamma_verify_2
+      - bake_strated
+      - tester_chore-5988
+      - strated:
+          requires:
+            - bake_strated
+            - tester_chore-5988
+      - chore-5988:
+          requires:
+            - bake_strated
+            - tester_chore-5988
+      - mar13-ship:
+          requires:
+            - bake_strated
+            - tester_chore-5988
+      - linter_preview
+      - B_preview_2:
+          requires:
+            - linter_preview
+      - preview:
+          requires:
+            - B_preview_2
+      - compile_Validate_Suite5:
+          requires:
+            - B_preview_2
+      - inspect_Validate_Suite5_2:
+          requires:
+            - compile_Validate_Suite5
+      - Validate_Suite5:
+          requires:
+            - inspect_Validate_Suite5_2
+      - preflight_Package_Image4:
+          requires:
+            - inspect_Validate_Suite5_2
+      - alpha_Package_Image4_2:
+          requires:
+            - preflight_Package_Image4
+      - Package_Image4:
+          requires:
+            - alpha_Package_Image4_2
+      - preflight_bug-905:
+          requires:
+            - alpha_Package_Image4_2
+      - redo_bug-905_2:
+          requires:
+            - preflight_bug-905
+      - bug-905:
+          requires:
+            - redo_bug-905_2
+      - phase1_v4-edge:
+          requires:
+            - redo_bug-905_2
+      - red_v4-edge_2:
+          requires:
+            - phase1_v4-edge
+      - v4-edge:
+          requires:
+            - red_v4-edge_2
+      - vendor_helios-beta
+      - cache_helios-beta_2:
+          requires:
+            - vendor_helios-beta
+      - helios-beta:
+          requires:
+            - cache_helios-beta_2
+      - resync_helios-rc:
+          requires:
+            - cache_helios-beta_2
+      - reup_helios-rc_2:
+          requires:
+            - resync_helios-rc
+      - helios-rc:
+          requires:
+            - reup_helios-rc_2
+      - canary1_atlas-plus:
+          requires:
+            - reup_helios-rc_2
+      - spinner_atlas-plus_2:
+          requires:
+            - canary1_atlas-plus
+      - atlas-plus:
+          requires:
+            - spinner_atlas-plus_2
